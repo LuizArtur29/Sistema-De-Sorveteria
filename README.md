@@ -1,5 +1,5 @@
 ### 🎯 Objetivo do projeto:  
-Criar um sorveteria.sorveteria.model de pedidos para uma sorveteria, permitindo gerenciar sabores, personalizar pedidos, aplicar descontos, acompanhar atualizações e otimizar o fluxo de pedidos.
+Criar um sorveteria.sorveteria.factory de pedidos para uma sorveteria, permitindo gerenciar sabores, personalizar pedidos, aplicar descontos, acompanhar atualizações e otimizar o fluxo de pedidos.
 
 ### 🔹 Funcionalidades e padrões de design aplicados:
 1. Strategy → Aplicação de diferentes estratégias de desconto (ex: desconto para clientes frequentes, desconto sazonal).  
@@ -13,6 +13,6 @@ Criar um sorveteria.sorveteria.model de pedidos para uma sorveteria, permitindo 
 9. Repository → Camada de persistência para salvar pedidos e histórico de clientes.  
 
 ### 🚀 Passos para implementação:
-1. Crie um projeto Java com pacotes organizados (ex: `sorveteria.sorveteria.model.sorveteria.sorveteria.model`, `service`, `repository`, `observer`).  
+1. Crie um projeto Java com pacotes organizados (ex: `sorveteria.sorveteria.factory.sorveteria.sorveteria.factory`, `service`, `repository`, `observer`).  
 2. Implemente os padrões começando pelos mais básicos (Singleton, Factory, Strategy).  
-3. Simule a execução do sorveteria.sorveteria.model com diferentes pedidos e estados.
+3. Simule a execução do sorveteria.sorveteria.factory com diferentes pedidos e estados.

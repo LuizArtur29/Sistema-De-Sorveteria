@@ -1,4 +1,4 @@
-package sorveteria.model;
+package sorveteria.factory;
 
 public abstract class Produto {
 

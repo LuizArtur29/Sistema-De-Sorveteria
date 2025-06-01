@@ -1,21 +1,19 @@
 package sorveteria.decorator;
 
-import sorveteria.model.Produto;
+import sorveteria.factory.Produto;
 
 public class DecoradorProduto extends Produto {
-    private Produto produtoDecorado;
+    private final Produto produtoDecorado;
+    private final TipoAdicional adicional;
 
-    public DecoradorProduto(Produto produtoDecorado, String nome, double preco) {
-        super(nome,preco);
+    public DecoradorProduto(Produto produtoDecorado, TipoAdicional adicional) {
+        super(produtoDecorado.getNome() + " + " + adicional.getNome(),
+                produtoDecorado.getPreco() + adicional.getPreco());
         this.produtoDecorado = produtoDecorado;
+        this.adicional = adicional;
     }
 
-
-    public String getName() {
-        return produtoDecorado.getNome() + " + " + super.getNome();
-    }
-
-    public double getPreco() {
-        return produtoDecorado.getPreco() + super.getPreco();
+    public TipoAdicional adicional() {
+        return adicional;
     }
 }
