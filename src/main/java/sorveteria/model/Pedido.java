@@ -7,7 +7,7 @@ import sorveteria.state.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Pedido implements PedidoObserver {
+public class Pedido{
     private EstadoPedido estado;
     private String id;
     private List<PedidoObserver> observers;

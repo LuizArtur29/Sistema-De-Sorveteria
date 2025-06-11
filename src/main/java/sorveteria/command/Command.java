@@ -1,6 +1,6 @@
 package sorveteria.command;
 
-public class Command {
+public interface Command {
     void executar();
     void desfazer();
 }

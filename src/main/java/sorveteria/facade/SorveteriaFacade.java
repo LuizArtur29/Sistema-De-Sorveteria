@@ -33,7 +33,7 @@ public class SorveteriaFacade {
 
         Produto produtoFinal = produtoBase;
         if (adicionais != null) {
-            for (tipoAdicional adicional : adicionais) {
+            for (TipoAdicional adicional : adicionais) {
                 produtoFinal = new DecoradorProduto(produtoFinal, adicional);
             }
         }

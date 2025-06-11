@@ -1,5 +1,7 @@
 package sorveteria.strategy;
 
+import sorveteria.model.Pedido;
+
 public class DescontoDiaDosNamorados implements DescontoStrategy {
     private static final double DESCONTO = 0.15; // 15% de Desconto
 

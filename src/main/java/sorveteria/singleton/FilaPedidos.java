@@ -1,6 +1,7 @@
+// src/main/java/sorveteria/singleton/FilaPedidos.java
 package sorveteria.singleton;
 
-import java.time.Period;
+import sorveteria.model.Pedido; // Adicione esta linha
 import java.util.LinkedList;
 import java.util.Queue;
 
