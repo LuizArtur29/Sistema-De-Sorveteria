@@ -4,6 +4,7 @@ import sorveteria.model.Pedido;
 import sorveteria.factory.Produto; // Importar Produto
 import sorveteria.factory.Factory; // Importar Factory para recriar produtos
 import sorveteria.decorator.SaborBase; // Importar SaborBase para recriar produtos
+import sorveteria.state.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,8 +17,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class PedidoRepository implements Repository<Pedido, String> {
-
-    private Factory produtoFactory = new Factory();
 
     @Override
     public Pedido salvar(Pedido pedido) {
@@ -103,27 +102,28 @@ public class PedidoRepository implements Repository<Pedido, String> {
                 String estadoDescricao = rs.getString("estado_atual");
                 double valorTotal = rs.getDouble("valor_total"); // Carrega o valor total
 
-                pedido = new Pedido(pedidoId, valorTotal); // Usa o novo construtor
+                EstadoPedido estadoCarregado;
 
                 // Definir o estado (lógica de recriação do objeto State)
                 switch (estadoDescricao) {
                     case "Em preparo":
-                        pedido.setEstado(new sorveteria.state.EmPreparoState());
+                        estadoCarregado = new EmPreparoState();
                         break;
                     case "Pronto para entrega":
-                        pedido.setEstado(new sorveteria.state.ProntoParaEntregaState());
+                        estadoCarregado = new ProntoParaEntregaState();
                         break;
                     case "Entregue":
-                        pedido.setEstado(new sorveteria.state.EntregueState());
+                        estadoCarregado = new EntregueState();
                         break;
                     case "Cancelado":
-                        pedido.setEstado(new sorveteria.state.CanceladoState());
+                        estadoCarregado = new CanceladoState();
                         break;
                     case "Pedido recebido":
                     default:
-                        pedido.setEstado(new sorveteria.state.RecebidoState());
+                        estadoCarregado = new RecebidoState();
                         break;
                 }
+                pedido = new Pedido(pedidoId, valorTotal, estadoCarregado);
 
                 // 2. Buscar os itens associados a este Pedido
                 String sqlItens = "SELECT nome_produto, preco_unitario FROM pedido_itens WHERE pedido_id = ?";
@@ -167,27 +167,28 @@ public class PedidoRepository implements Repository<Pedido, String> {
                 String estadoDescricao = rs.getString("estado_atual");
                 double valorTotal = rs.getDouble("valor_total");
 
-                Pedido pedido = new Pedido(pedidoId, valorTotal);
+                EstadoPedido estadoCarregado;
 
                 // Definir o estado
                 switch (estadoDescricao) {
                     case "Em preparo":
-                        pedido.setEstado(new sorveteria.state.EmPreparoState());
+                        estadoCarregado = new EmPreparoState();
                         break;
                     case "Pronto para entrega":
-                        pedido.setEstado(new sorveteria.state.ProntoParaEntregaState());
+                        estadoCarregado = new ProntoParaEntregaState();
                         break;
                     case "Entregue":
-                        pedido.setEstado(new sorveteria.state.EntregueState());
+                        estadoCarregado = new EntregueState();
                         break;
                     case "Cancelado":
-                        pedido.setEstado(new sorveteria.state.CanceladoState());
+                        estadoCarregado = new CanceladoState();
                         break;
                     case "Pedido recebido":
                     default:
-                        pedido.setEstado(new sorveteria.state.RecebidoState());
+                        estadoCarregado = new RecebidoState();
                         break;
                 }
+                Pedido pedido = new Pedido(pedidoId, valorTotal, estadoCarregado);
 
                 // Buscar itens para cada pedido
                 String sqlItens = "SELECT nome_produto, preco_unitario FROM pedido_itens WHERE pedido_id = ?";

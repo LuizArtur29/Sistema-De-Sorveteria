@@ -23,12 +23,12 @@ public class Pedido{
     }
 
     // Construtor para ser usado pelo Repository ao carregar dados do DB
-    public Pedido(String id, double valorTotal) {
+    public Pedido(String id, double valorTotal, EstadoPedido estadoInicial) {
         this.id = id;
         this.observers = new ArrayList<>();
         this.itens = new ArrayList<>();
-        this.setValorTotal(valorTotal);
-        // O estado inicial não é definido aqui, será carregado pelo PedidoRepository
+        this.valorTotal = valorTotal;
+        this.estado = estadoInicial;
     }
 
     public void avancarEstado() {
@@ -57,9 +57,9 @@ public class Pedido{
     }
 
     private void calcularValorTotal() {
-        this.setValorTotal(0.0);
+        this.valorTotal = 0.0;
         for (Produto item : itens) {
-            this.setValorTotal(this.getValorTotal() + item.getPreco());
+            this.valorTotal += item.getPreco();
         }
     }
 

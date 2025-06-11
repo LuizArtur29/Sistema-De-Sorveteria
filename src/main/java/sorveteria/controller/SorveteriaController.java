@@ -1,21 +1,22 @@
-// src/main/java/sorveteria/controller/SorveteriaController.java
 package sorveteria.controller;
 
 import sorveteria.decorator.SaborBase;
 import sorveteria.decorator.TipoAdicional;
 import sorveteria.facade.SistemaSorveteriaFacade;
 import sorveteria.factory.Produto;
+import sorveteria.model.Cliente;
 import sorveteria.model.Pedido;
 
 import java.util.List;
 import java.util.Scanner;
+import java.util.Optional;
 
 public class SorveteriaController {
     private SistemaSorveteriaFacade facade;
     private Scanner scanner;
 
     public SorveteriaController() {
-        this.facade = new SistemaSorveteriaFacade();
+        this.facade = new SistemaSorveteriaFacade(); // A fachada agora lida com repositórios
         this.scanner = new Scanner(System.in);
     }
 
@@ -23,7 +24,160 @@ public class SorveteriaController {
         System.out.println("Bem-vindo à Sorveteria!");
         int opcao;
         do {
-            exibirMenu();
+            exibirMenuPrincipal();
+            opcao = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (opcao) {
+                case 1:
+                    menuClientes();
+                    break;
+                case 2:
+                    menuPedidos();
+                    break;
+                case 3:
+                    aplicarDescontoEmPedido();
+                    break;
+                case 4:
+                    desfazerUltimoComando();
+                    break;
+                case 5:
+                    refazerUltimoComando();
+                    break;
+                case 0:
+                    System.out.println("Saindo do sistema. Obrigado!");
+                    break;
+                default:
+                    System.out.println("Opção inválida. Tente novamente.");
+            }
+            System.out.println("\n-----------------------------------\n");
+        } while (opcao != 0);
+    }
+
+    private void exibirMenuPrincipal() {
+        System.out.println("Escolha uma opção:");
+        System.out.println("1. Gerenciar Clientes");
+        System.out.println("2. Gerenciar Pedidos");
+        System.out.println("3. Aplicar desconto em um valor");
+        System.out.println("4. Desfazer último comando");
+        System.out.println("5. Refazer último comando");
+        System.out.println("0. Sair");
+        System.out.print("Sua opção: ");
+    }
+
+    private void menuClientes() {
+        int opcao;
+        do {
+            exibirMenuClientes();
+            opcao = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (opcao) {
+                case 1:
+                    cadastrarNovoCliente();
+                    break;
+                case 2:
+                    listarTodosClientes();
+                    break;
+                case 3:
+                    buscarClientePorId();
+                    break;
+                case 4:
+                    atualizarDadosCliente();
+                    break;
+                case 5:
+                    deletarCliente();
+                    break;
+                case 0:
+                    System.out.println("Retornando ao menu principal...");
+                    break;
+                default:
+                    System.out.println("Opção inválida. Tente novamente.");
+            }
+            System.out.println("\n-----------------------------------\n");
+        } while (opcao != 0);
+    }
+
+    private void exibirMenuClientes() {
+        System.out.println("\n--- Gerenciamento de Clientes ---");
+        System.out.println("1. Cadastrar novo cliente");
+        System.out.println("2. Listar todos os clientes");
+        System.out.println("3. Buscar cliente por ID");
+        System.out.println("4. Atualizar dados do cliente");
+        System.out.println("5. Deletar cliente");
+        System.out.println("0. Voltar ao menu principal");
+        System.out.print("Sua opção: ");
+    }
+
+    private void cadastrarNovoCliente() {
+        System.out.print("Digite o ID do cliente: ");
+        String id = scanner.nextLine();
+        System.out.print("Digite o nome do cliente: ");
+        String nome = scanner.nextLine();
+        System.out.print("Digite o email do cliente: ");
+        String email = scanner.nextLine();
+
+        facade.cadastrarCliente(new Cliente(id, nome, email));
+        System.out.println("Cliente " + nome + " cadastrado com sucesso!");
+    }
+
+    private void listarTodosClientes() {
+        List<Cliente> clientes = facade.listarClientes();
+        if (clientes.isEmpty()) {
+            System.out.println("Nenhum cliente cadastrado.");
+        } else {
+            System.out.println("\n--- Clientes Cadastrados ---");
+            clientes.forEach(System.out::println);
+        }
+    }
+
+    private void buscarClientePorId() {
+        System.out.print("Digite o ID do cliente para buscar: ");
+        String id = scanner.nextLine();
+        Optional<Cliente> cliente = facade.buscarClientePorId(id);
+        cliente.ifPresentOrElse(
+                System.out::println,
+                () -> System.out.println("Cliente com ID " + id + " não encontrado.")
+        );
+    }
+
+    private void atualizarDadosCliente() {
+        System.out.print("Digite o ID do cliente para atualizar: ");
+        String id = scanner.nextLine();
+        Optional<Cliente> clienteExistente = facade.buscarClientePorId(id);
+
+        if (clienteExistente.isPresent()) {
+            Cliente cliente = clienteExistente.get();
+            System.out.print("Digite o novo nome do cliente (deixe em branco para manter '" + cliente.getNome() + "'): ");
+            String novoNome = scanner.nextLine();
+            if (!novoNome.isEmpty()) {
+                cliente.setNome(novoNome);
+            }
+
+            System.out.print("Digite o novo email do cliente (deixe em branco para manter '" + cliente.getEmail() + "'): ");
+            String novoEmail = scanner.nextLine();
+            if (!novoEmail.isEmpty()) {
+                cliente.setEmail(novoEmail);
+            }
+            facade.atualizarCliente(cliente);
+            System.out.println("Cliente com ID " + id + " atualizado com sucesso.");
+        } else {
+            System.out.println("Cliente com ID " + id + " não encontrado.");
+        }
+    }
+
+    private void deletarCliente() {
+        System.out.print("Digite o ID do cliente para deletar: ");
+        String id = scanner.nextLine();
+        facade.deletarCliente(id);
+        System.out.println("Tentativa de deletar cliente com ID " + id + ".");
+    }
+
+
+    private void menuPedidos() {
+        int opcao;
+        do {
+            exibirMenuPedidos();
             opcao = scanner.nextInt();
             scanner.nextLine(); // Consume newline
 
@@ -41,16 +195,16 @@ public class SorveteriaController {
                     cancelarPedido();
                     break;
                 case 5:
-                    aplicarDescontoEmPedido();
+                    listarTodosPedidos();
                     break;
                 case 6:
-                    desfazerUltimoComando();
+                    buscarPedidoPorId();
                     break;
                 case 7:
-                    refazerUltimoComando();
+                    deletarPedido();
                     break;
                 case 0:
-                    System.out.println("Saindo do sistema. Obrigado!");
+                    System.out.println("Retornando ao menu principal...");
                     break;
                 default:
                     System.out.println("Opção inválida. Tente novamente.");
@@ -59,24 +213,30 @@ public class SorveteriaController {
         } while (opcao != 0);
     }
 
-    private void exibirMenu() {
-        System.out.println("Escolha uma opção:");
+    private void exibirMenuPedidos() {
+        System.out.println("\n--- Gerenciamento de Pedidos ---");
         System.out.println("1. Fazer novo pedido");
         System.out.println("2. Processar próximo pedido da fila");
         System.out.println("3. Avançar estado de um pedido");
         System.out.println("4. Cancelar um pedido");
-        System.out.println("5. Aplicar desconto em um valor");
-        System.out.println("6. Desfazer último comando");
-        System.out.println("7. Refazer último comando");
-        System.out.println("0. Sair");
+        System.out.println("5. Listar todos os pedidos");
+        System.out.println("6. Buscar pedido por ID");
+        System.out.println("7. Deletar pedido");
+        System.out.println("0. Voltar ao menu principal");
         System.out.print("Sua opção: ");
     }
 
     private void fazerNovoPedido() {
         System.out.print("Digite o ID do pedido: ");
         String idPedido = scanner.nextLine();
-        System.out.print("Digite o nome do cliente: ");
-        String nomeCliente = scanner.nextLine();
+        System.out.print("Digite o ID do cliente associado ao pedido: ");
+        String idCliente = scanner.nextLine();
+
+        Optional<Cliente> cliente = facade.buscarClientePorId(idCliente);
+        if (cliente.isEmpty()) {
+            System.out.println("Cliente com ID " + idCliente + " não encontrado. Por favor, cadastre o cliente primeiro.");
+            return;
+        }
 
         System.out.print("Digite o tipo de produto (sorvete, milkshake, picole): ");
         String tipoProduto = scanner.nextLine();
@@ -97,10 +257,12 @@ public class SorveteriaController {
 
         Produto produto = facade.criarProduto(tipoProduto, saborEscolhido, adicionais);
         if (produto != null) {
-            Pedido novoPedido = facade.registrarNovoPedido(idPedido, nomeCliente);
+            Pedido novoPedido = facade.registrarNovoPedido(idPedido, cliente.get().getNome());
             if (novoPedido != null) {
                 novoPedido.adicionarItem(produto);
-                System.out.println("Produto " + produto.getNome() + " adicionado ao pedido #" + idPedido + " com preço R$" + produto.getPreco());
+                facade.salvarPedido(novoPedido); // Salvar o pedido no BD após adicionar o item
+                System.out.println("Produto " + produto.getNome() + " adicionado ao pedido #" + idPedido + " com preço R$" + String.format("%.2f", produto.getPreco()));
+                System.out.println("Pedido salvo no banco de dados.");
             }
         }
     }
@@ -129,37 +291,87 @@ public class SorveteriaController {
         return adicionais;
     }
 
-
     private void processarProximoPedido() {
         System.out.println("Tentando processar o próximo pedido da fila...");
-        facade.processarProximoPedidoDaFila();
+        Pedido pedidoProcessado = facade.processarProximoPedidoDaFila();
+        if (pedidoProcessado != null) {
+            facade.salvarPedido(pedidoProcessado); // Salva o estado atualizado no BD
+        }
     }
 
     private void avancarEstadoDoPedido() {
         System.out.print("Digite o ID do pedido para avançar o estado: ");
         String idPedido = scanner.nextLine();
-        // Para avançar o estado, precisamos do objeto Pedido.
-        // Em um sistema real, você buscaria o pedido pelo ID no repositório.
-        // Para simplificar a simulação aqui, vamos criar um pedido mock ou assumir que ele já existe na fila.
-        // Idealmente, a fachada deveria ter um método para buscar um pedido.
-
-        // Simulação: Criamos um pedido temporário para o comando,
-        // mas o correto seria buscar o pedido real da fila ou do repositório.
-        // Como a fila é um singleton, o pedido na fila teria seu estado atualizado.
-        // Para um cenário mais robusto, o facade.processarProximoPedidoDaFila()
-        // já avança o estado e o facade precisaria de um método para "pegar" um pedido específico.
-        Pedido pedidoParaAvancar = new Pedido(idPedido);
-        System.out.println("Avançando estado do pedido #" + idPedido + " (assumindo que ele existe).");
-        facade.avancarEstadoPedido(pedidoParaAvancar);
+        Optional<Pedido> pedidoOptional = facade.buscarPedidoPorId(idPedido);
+        if (pedidoOptional.isPresent()) {
+            Pedido pedidoParaAvancar = pedidoOptional.get();
+            System.out.println("Avançando estado do pedido #" + idPedido + "...");
+            facade.avancarEstadoPedido(pedidoParaAvancar);
+            facade.salvarPedido(pedidoParaAvancar); // Salva o estado atualizado no BD
+        } else {
+            System.out.println("Pedido com ID " + idPedido + " não encontrado.");
+        }
     }
 
     private void cancelarPedido() {
         System.out.print("Digite o ID do pedido para cancelar: ");
         String idPedido = scanner.nextLine();
-        // Similar ao avancarEstadoDoPedido, precisamos do objeto Pedido real.
-        Pedido pedidoParaCancelar = new Pedido(idPedido);
-        System.out.println("Cancelando pedido #" + idPedido + " (assumindo que ele existe).");
-        facade.cancelarPedido(pedidoParaCancelar);
+        Optional<Pedido> pedidoOptional = facade.buscarPedidoPorId(idPedido);
+        if (pedidoOptional.isPresent()) {
+            Pedido pedidoParaCancelar = pedidoOptional.get();
+            System.out.println("Cancelando pedido #" + idPedido + "...");
+            facade.cancelarPedido(pedidoParaCancelar);
+            facade.salvarPedido(pedidoParaCancelar); // Salva o estado atualizado no BD
+        } else {
+            System.out.println("Pedido com ID " + idPedido + " não encontrado.");
+        }
+    }
+
+    private void listarTodosPedidos() {
+        List<Pedido> pedidos = facade.listarPedidos();
+        if (pedidos.isEmpty()) {
+            System.out.println("Nenhum pedido cadastrado.");
+        } else {
+            System.out.println("\n--- Pedidos Cadastrados ---");
+            pedidos.forEach(pedido -> {
+                System.out.println("ID: " + pedido.getId() +
+                        ", Estado: " + pedido.getEstado().getDescricao() +
+                        ", Valor Total: R$" + String.format("%.2f", pedido.getValorTotal()));
+                if (!pedido.getItens().isEmpty()) {
+                    System.out.println("  Itens:");
+                    pedido.getItens().forEach(item ->
+                            System.out.println("    - " + item.getNome() + " (R$" + String.format("%.2f", item.getPreco()) + ")")
+                    );
+                }
+            });
+        }
+    }
+
+    private void buscarPedidoPorId() {
+        System.out.print("Digite o ID do pedido para buscar: ");
+        String id = scanner.nextLine();
+        Optional<Pedido> pedido = facade.buscarPedidoPorId(id);
+        pedido.ifPresentOrElse(
+                p -> {
+                    System.out.println("ID: " + p.getId() +
+                            ", Estado: " + p.getEstado().getDescricao() +
+                            ", Valor Total: R$" + String.format("%.2f", p.getValorTotal()));
+                    if (!p.getItens().isEmpty()) {
+                        System.out.println("  Itens:");
+                        p.getItens().forEach(item ->
+                                System.out.println("    - " + item.getNome() + " (R$" + String.format("%.2f", item.getPreco()) + ")")
+                        );
+                    }
+                },
+                () -> System.out.println("Pedido com ID " + id + " não encontrado.")
+        );
+    }
+
+    private void deletarPedido() {
+        System.out.print("Digite o ID do pedido para deletar: ");
+        String id = scanner.nextLine();
+        facade.deletarPedido(id);
+        System.out.println("Tentativa de deletar pedido com ID " + id + ".");
     }
 
     private void aplicarDescontoEmPedido() {
