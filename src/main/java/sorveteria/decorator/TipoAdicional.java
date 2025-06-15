@@ -1,8 +1,8 @@
 package sorveteria.decorator;
 
 public enum TipoAdicional {
-    GRANULADO("Granulado", 0.50),
-    AMENDOIN("Amendoin", 0.75),
+    GRANULADO("Granulado", 1.00),
+    AMENDOIN("Amendoin", 1.50),
 
     ;
 

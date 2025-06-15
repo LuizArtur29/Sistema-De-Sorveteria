@@ -9,7 +9,8 @@ import java.util.List;
 
 public class Pedido{
     private EstadoPedido estado;
-    private int id; // ID agora é int
+    private int id;
+    private int idCliente;
     private List<PedidoObserver> observers;
     private List<Produto> itens;
     private double valorTotal;
@@ -23,8 +24,9 @@ public class Pedido{
     }
 
     // Construtor para carregar pedidos existentes do DB (com ID já existente)
-    public Pedido(int id, double valorTotal, EstadoPedido estadoInicial) {
+    public Pedido(int id, int idCliente, double valorTotal, EstadoPedido estadoInicial) {
         this.id = id;
+        this.setIdCliente(idCliente);
         this.observers = new ArrayList<>();
         this.itens = new ArrayList<>();
         this.valorTotal = valorTotal;
@@ -100,5 +102,14 @@ public class Pedido{
 
     public void setValorTotal(double valorTotal) {
         this.valorTotal = valorTotal;
+    }
+
+
+    public int getIdCliente() {
+        return idCliente;
+    }
+
+    public void setIdCliente(int idCliente) {
+        this.idCliente = idCliente;
     }
 }

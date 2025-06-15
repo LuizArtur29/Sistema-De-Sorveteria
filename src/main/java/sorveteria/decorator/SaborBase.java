@@ -1,9 +1,9 @@
 package sorveteria.decorator;
 
 public enum SaborBase {
-    CHOCOLATE("Chocolate", 0.50),
-    MORANGO("Morango", 0.50),
-    BAUNILHA("Baunilha", 0.50);
+    CHOCOLATE("Chocolate", 8.50),
+    MORANGO("Morango", 7.90),
+    BAUNILHA("Baunilha", 7.50);
 
     private final String nome;
     private final double precoBase;

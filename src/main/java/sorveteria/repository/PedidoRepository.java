@@ -13,49 +13,45 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-// Implementa Repository com Integer para o ID
 public class PedidoRepository implements Repository<Pedido, Integer> {
 
     @Override
     public Pedido salvar(Pedido pedido) {
         Connection conn = null;
         PreparedStatement stmt = null;
-        ResultSet rs = null; // Para obter chaves geradas
+        ResultSet rs = null;
         try {
             conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false); // Inicia transação
+            conn.setAutoCommit(false);
 
-            // Se o pedido não tem ID (é novo), insere e obtém o ID gerado
-            // Assumimos que ID = 0 significa um novo pedido a ser inserido.
-            if (pedido.getId() == 0) {
-                // NÃO INCLUI 'id' na lista de colunas para o INSERT
-                String sqlInsert = "INSERT INTO pedidos (estado_atual, valor_total, data_criacao) VALUES (?, ?, ?)";
-                stmt = conn.prepareStatement(sqlInsert, PreparedStatement.RETURN_GENERATED_KEYS); // Indica para retornar chaves geradas
+            if (pedido.getId() == 0) { // Nova inserção
+                String sqlInsert = "INSERT INTO pedidos (estado_atual, valor_total, data_criacao, id_cliente) VALUES (?, ?, ?, ?)"; // Adicionado id_cliente
+                stmt = conn.prepareStatement(sqlInsert, PreparedStatement.RETURN_GENERATED_KEYS);
                 stmt.setString(1, pedido.getEstado().getDescricao());
                 stmt.setDouble(2, pedido.getValorTotal());
                 stmt.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+                stmt.setInt(4, pedido.getIdCliente()); // Definir o id_cliente
                 stmt.executeUpdate();
 
-                rs = stmt.getGeneratedKeys(); // Obtém o ResultSet com as chaves geradas
+                rs = stmt.getGeneratedKeys();
                 if (rs.next()) {
-                    int generatedId = rs.getInt(1); // Recupera o primeiro (e único) ID gerado
-                    pedido.setId(generatedId); // Define o ID gerado no objeto Pedido
+                    int generatedId = rs.getInt(1);
+                    pedido.setId(generatedId);
                     System.out.println("Novo pedido inserido com ID gerado: #" + generatedId);
                 }
-            } else { // Se o pedido já tem ID, é uma atualização
-                String sqlUpdate = "UPDATE pedidos SET estado_atual = ?, valor_total = ? WHERE id = ?";
+            } else { // Atualização
+                String sqlUpdate = "UPDATE pedidos SET estado_atual = ?, valor_total = ?, id_cliente = ? WHERE id = ?"; // Adicionado id_cliente para atualização
                 stmt = conn.prepareStatement(sqlUpdate);
                 stmt.setString(1, pedido.getEstado().getDescricao());
                 stmt.setDouble(2, pedido.getValorTotal());
-                stmt.setInt(3, pedido.getId());
+                stmt.setInt(3, pedido.getIdCliente()); // Definir o id_cliente
+                stmt.setInt(4, pedido.getId());
                 stmt.executeUpdate();
                 System.out.println("Pedido #" + pedido.getId() + " atualizado.");
             }
 
-            // Após o pedido principal ser salvo/atualizado e o ID estar no objeto 'pedido',
-            // podemos processar os itens.
-
-            // Limpar itens antigos para este pedido (evitar duplicatas ao atualizar)
+            // ... (Restante do método salvar, para itens, que já usa pedido.getId()) ...
+            // Limpar itens antigos para este pedido
             String sqlDeleteItens = "DELETE FROM pedido_itens WHERE pedido_id = ?";
             stmt = conn.prepareStatement(sqlDeleteItens);
             stmt.setInt(1, pedido.getId());
@@ -71,7 +67,7 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                 stmt.executeUpdate();
             }
 
-            conn.commit(); // Confirma a transação
+            conn.commit();
             System.out.println("Itens do pedido #" + pedido.getId() + " salvos/atualizados com sucesso.");
             return pedido;
         } catch (SQLException e) {
@@ -79,7 +75,7 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
             e.printStackTrace();
             if (conn != null) {
                 try {
-                    conn.rollback(); // Desfaz a transação em caso de erro
+                    conn.rollback();
                     System.err.println("Transação desfeita.");
                 } catch (SQLException rbEx) {
                     System.err.println("Erro ao desfazer transação: " + rbEx.getMessage());
@@ -94,7 +90,7 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
     }
 
     @Override
-    public Optional<Pedido> buscarPorId(Integer id) { // ID é Integer
+    public Optional<Pedido> buscarPorId(Integer id) {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -103,7 +99,8 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
         try {
             conn = DatabaseConnection.getConnection();
 
-            String sqlPedido = "SELECT id, estado_atual, valor_total FROM pedidos WHERE id = ?";
+            // Adicionado id_cliente à seleção
+            String sqlPedido = "SELECT id, estado_atual, valor_total, id_cliente FROM pedidos WHERE id = ?";
             stmt = conn.prepareStatement(sqlPedido);
             stmt.setInt(1, id);
             rs = stmt.executeQuery();
@@ -112,29 +109,19 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                 int pedidoId = rs.getInt("id");
                 String estadoDescricao = rs.getString("estado_atual");
                 double valorTotal = rs.getDouble("valor_total");
+                int idCliente = rs.getInt("id_cliente"); // Obter o id_cliente
 
                 EstadoPedido estadoCarregado;
-
                 switch (estadoDescricao) {
-                    case "Em preparo":
-                        estadoCarregado = new EmPreparoState();
-                        break;
-                    case "Pronto para entrega":
-                        estadoCarregado = new ProntoParaEntregaState();
-                        break;
-                    case "Entregue":
-                        estadoCarregado = new EntregueState();
-                        break;
-                    case "Cancelado":
-                        estadoCarregado = new CanceladoState();
-                        break;
-                    case "Pedido recebido":
-                    default:
-                        estadoCarregado = new RecebidoState();
-                        break;
+                    case "Em preparo": estadoCarregado = new EmPreparoState(); break;
+                    case "Pronto para entrega": estadoCarregado = new ProntoParaEntregaState(); break;
+                    case "Entregue": estadoCarregado = new EntregueState(); break;
+                    case "Cancelado": estadoCarregado = new CanceladoState(); break;
+                    case "Pedido recebido": default: estadoCarregado = new RecebidoState(); break;
                 }
-                pedido = new Pedido(pedidoId, valorTotal, estadoCarregado);
+                pedido = new Pedido(pedidoId, idCliente, valorTotal, estadoCarregado); // Passar id_cliente para o construtor
 
+                // ... (restante do método buscarItens, que não precisa de id_cliente) ...
                 String sqlItens = "SELECT nome_produto, preco_unitario FROM pedido_itens WHERE pedido_id = ?";
                 stmt = conn.prepareStatement(sqlItens);
                 stmt.setInt(1, pedidoId);
@@ -167,7 +154,8 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
 
         try {
             conn = DatabaseConnection.getConnection();
-            String sqlPedidos = "SELECT id, estado_atual, valor_total FROM pedidos";
+            // Adicionado id_cliente à seleção
+            String sqlPedidos = "SELECT id, estado_atual, valor_total, id_cliente FROM pedidos";
             stmt = conn.prepareStatement(sqlPedidos);
             rs = stmt.executeQuery();
 
@@ -175,29 +163,19 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                 int pedidoId = rs.getInt("id");
                 String estadoDescricao = rs.getString("estado_atual");
                 double valorTotal = rs.getDouble("valor_total");
+                int idCliente = rs.getInt("id_cliente"); // Obter o id_cliente
 
                 EstadoPedido estadoCarregado;
-
                 switch (estadoDescricao) {
-                    case "Em preparo":
-                        estadoCarregado = new EmPreparoState();
-                        break;
-                    case "Pronto para entrega":
-                        estadoCarregado = new ProntoParaEntregaState();
-                        break;
-                    case "Entregue":
-                        estadoCarregado = new EntregueState();
-                        break;
-                    case "Cancelado":
-                        estadoCarregado = new CanceladoState();
-                        break;
-                    case "Pedido recebido":
-                    default:
-                        estadoCarregado = new RecebidoState();
-                        break;
+                    case "Em preparo": estadoCarregado = new EmPreparoState(); break;
+                    case "Pronto para entrega": estadoCarregado = new ProntoParaEntregaState(); break;
+                    case "Entregue": estadoCarregado = new EntregueState(); break;
+                    case "Cancelado": estadoCarregado = new CanceladoState(); break;
+                    case "Pedido recebido": default: estadoCarregado = new RecebidoState(); break;
                 }
-                Pedido pedido = new Pedido(pedidoId, valorTotal, estadoCarregado);
+                Pedido pedido = new Pedido(pedidoId, idCliente, valorTotal, estadoCarregado); // Passar id_cliente para o construtor
 
+                // ... (restante do método, para itens) ...
                 String sqlItens = "SELECT nome_produto, preco_unitario FROM pedido_itens WHERE pedido_id = ?";
                 PreparedStatement stmtItens = conn.prepareStatement(sqlItens);
                 stmtItens.setInt(1, pedidoId);
@@ -225,33 +203,31 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
     }
 
     @Override
-    public void deletar(Integer id) { // ID é Integer
+    public void deletar(Integer id) {
         Connection conn = null;
         PreparedStatement stmt = null;
         try {
             conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false); // Inicia transação
+            conn.setAutoCommit(false);
 
-            // Deletar itens do pedido primeiro (devido à chave estrangeira)
             String sqlDeleteItens = "DELETE FROM pedido_itens WHERE pedido_id = ?";
             stmt = conn.prepareStatement(sqlDeleteItens);
             stmt.setInt(1, id);
             stmt.executeUpdate();
 
-            // Deletar o pedido principal
             String sqlDeletePedido = "DELETE FROM pedidos WHERE id = ?";
             stmt = conn.prepareStatement(sqlDeletePedido);
             stmt.setInt(1, id);
             stmt.executeUpdate();
 
-            conn.commit(); // Confirma a transação
+            conn.commit();
             System.out.println("Pedido com ID " + id + " (e seus itens) deletado com sucesso.");
         } catch (SQLException e) {
             System.err.println("Erro ao deletar pedido (e seus itens): " + e.getMessage());
             e.printStackTrace();
             if (conn != null) {
                 try {
-                    conn.rollback(); // Desfaz a transação
+                    conn.rollback();
                     System.err.println("Transação desfeita.");
                 } catch (SQLException rbEx) {
                     System.err.println("Erro ao desfazer transação: " + rbEx.getMessage());

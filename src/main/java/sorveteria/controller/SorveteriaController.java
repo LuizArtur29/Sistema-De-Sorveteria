@@ -10,6 +10,7 @@ import sorveteria.model.Pedido;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Optional;
+import java.util.InputMismatchException;
 
 public class SorveteriaController {
     private SistemaSorveteriaFacade facade;
@@ -36,7 +37,7 @@ public class SorveteriaController {
                     menuPedidos();
                     break;
                 case 3:
-                    aplicarDescontoEmPedido();
+                    aplicarDescontoAoPedido(); // RENOMEADO E MODIFICADO
                     break;
                 case 4:
                     desfazerUltimoComando();
@@ -58,7 +59,7 @@ public class SorveteriaController {
         System.out.println("Escolha uma opção:");
         System.out.println("1. Gerenciar Clientes");
         System.out.println("2. Gerenciar Pedidos");
-        System.out.println("3. Aplicar desconto em um valor");
+        System.out.println("3. Aplicar desconto ao pedido (valor total)");
         System.out.println("4. Desfazer último comando");
         System.out.println("5. Refazer último comando");
         System.out.println("0. Sair");
@@ -68,7 +69,7 @@ public class SorveteriaController {
     private void menuClientes() {
         int opcao;
         do {
-            exibirMenuClientes();
+            exibirMenuClientes(); // <--- MÉTODO QUE CAUSA O ERRO
             opcao = scanner.nextInt();
             scanner.nextLine(); // Consume newline
 
@@ -98,6 +99,7 @@ public class SorveteriaController {
         } while (opcao != 0);
     }
 
+    // DEFINIÇÃO DO MÉTODO exibirMenuClientes() - DEVE ESTAR AQUI!
     private void exibirMenuClientes() {
         System.out.println("\n--- Gerenciamento de Clientes ---");
         System.out.println("1. Cadastrar novo cliente");
@@ -110,18 +112,16 @@ public class SorveteriaController {
     }
 
     private void cadastrarNovoCliente() {
-        // ID do cliente NÃO É MAIS SOLICITADO, será gerado pelo banco de dados.
-
         System.out.print("Digite o nome do cliente: ");
         String nome = scanner.nextLine();
         System.out.print("Digite o email do cliente: ");
         String email = scanner.nextLine();
 
-        Cliente novoCliente = new Cliente(); // Usa o construtor sem argumentos
+        Cliente novoCliente = new Cliente();
         novoCliente.setNome(nome);
         novoCliente.setEmail(email);
 
-        facade.cadastrarCliente(novoCliente); // Passa o objeto Cliente sem ID, que será gerado no repositório
+        facade.cadastrarCliente(novoCliente);
     }
 
     private void listarTodosClientes() {
@@ -249,8 +249,6 @@ public class SorveteriaController {
     }
 
     private void fazerNovoPedido() {
-        // ID do pedido NÃO É MAIS SOLICITADO, será gerado pelo banco de dados.
-
         int idCliente;
         try {
             System.out.print("Digite o ID do cliente associado ao pedido (número inteiro): ");
@@ -266,33 +264,48 @@ public class SorveteriaController {
             return;
         }
 
-        System.out.print("Digite o tipo de produto (sorvete, milkshake, picole): ");
-        String tipoProduto = scanner.nextLine();
-
-        SaborBase saborEscolhido = null;
-        boolean saborValido = false;
-        while (!saborValido) {
-            System.out.print("Escolha o sabor base (CHOCOLATE, MORANGO, BAUNILHA): ");
-            try {
-                saborEscolhido = SaborBase.valueOf(scanner.nextLine().toUpperCase());
-                saborValido = true;
-            } catch (IllegalArgumentException e) {
-                System.out.println("Sabor inválido. Por favor, escolha entre CHOCOLATE, MORANGO, BAUNILHA.");
-            }
+        Pedido novoPedido = facade.registrarNovoPedido(idCliente, cliente.get().getNome());
+        if (novoPedido == null) {
+            System.out.println("Não foi possível registrar o novo pedido.");
+            return;
         }
 
-        List<TipoAdicional> adicionais = solicitarAdicionais();
+        String adicionarMaisItens;
+        do {
+            System.out.println("\n--- Adicionar Item ao Pedido #" + novoPedido.getId() + " ---");
+            System.out.print("Digite o tipo de produto (sorvete, milkshake, picole): ");
+            String tipoProduto = scanner.nextLine();
 
-        Produto produto = facade.criarProduto(tipoProduto, saborEscolhido, adicionais);
-        if (produto != null) {
-            Pedido novoPedido = facade.registrarNovoPedido(cliente.get().getNome());
-            if (novoPedido != null) {
+            SaborBase saborEscolhido = null;
+            boolean saborValido = false;
+            while (!saborValido) {
+                System.out.print("Escolha o sabor base (CHOCOLATE, MORANGO, BAUNILHA): ");
+                try {
+                    saborEscolhido = SaborBase.valueOf(scanner.nextLine().toUpperCase());
+                    saborValido = true;
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Sabor inválido. Por favor, escolha entre CHOCOLATE, MORANGO, BAUNILHA.");
+                }
+            }
+
+            List<TipoAdicional> adicionais = solicitarAdicionais();
+
+            Produto produto = facade.criarProduto(tipoProduto, saborEscolhido, adicionais);
+            if (produto != null) {
                 novoPedido.adicionarItem(produto);
-                facade.salvarPedido(novoPedido);
-                System.out.println("Produto " + produto.getNome() + " adicionado ao pedido #" + novoPedido.getId() + " com preço R$" + String.format("%.2f", produto.getPreco()));
-                System.out.println("Pedido #" + novoPedido.getId() + " salvo no banco de dados com ID gerado.");
+                System.out.println("Produto '" + produto.getNome() + "' (R$" + String.format("%.2f", produto.getPreco()) + ") adicionado ao pedido.");
+            } else {
+                System.out.println("Não foi possível criar o produto. Item não adicionado.");
             }
-        }
+
+            System.out.print("Deseja adicionar mais itens a este pedido? (sim/não): ");
+            adicionarMaisItens = scanner.nextLine().toLowerCase();
+
+        } while ("sim".equals(adicionarMaisItens));
+
+        facade.salvarPedido(novoPedido);
+        System.out.println("\nPedido #" + novoPedido.getId() + " finalizado e salvo no banco de dados.");
+        System.out.println("Valor total do pedido: R$" + String.format("%.2f", novoPedido.getValorTotal()));
     }
 
     private List<TipoAdicional> solicitarAdicionais() {
@@ -428,18 +441,27 @@ public class SorveteriaController {
         facade.deletarPedido(id);
     }
 
-    private void aplicarDescontoEmPedido() {
-        System.out.print("Digite o valor original para aplicar o desconto: ");
-        double valorOriginal = scanner.nextDouble();
-        scanner.nextLine(); // Consume newline
+    private void aplicarDescontoAoPedido() {
+        int idPedido;
+        try {
+            System.out.print("Digite o ID do pedido para aplicar o desconto (número inteiro): ");
+            idPedido = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Pedido inválido. Por favor, digite um número inteiro.");
+            return;
+        }
 
         System.out.print("Digite o tipo de desconto (fidelidade/diadosnamorados): ");
         String tipoDesconto = scanner.nextLine();
 
-        double valorComDesconto = facade.aplicarDesconto(valorOriginal, tipoDesconto);
-        System.out.println("Valor original: R$" + String.format("%.2f", valorOriginal));
-        System.out.println("Valor com desconto (" + tipoDesconto + "): R$" + String.format("%.2f", valorComDesconto));
+        boolean sucesso = facade.aplicarDescontoAoTotalDoPedido(idPedido, tipoDesconto);
+        if (sucesso) {
+            System.out.println("Desconto aplicado com sucesso ao pedido!");
+        } else {
+            System.out.println("Falha ao aplicar desconto ao pedido.");
+        }
     }
+
 
     private void desfazerUltimoComando() {
         System.out.println("Desfazendo último comando...");

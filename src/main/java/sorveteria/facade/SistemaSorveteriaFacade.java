@@ -19,6 +19,8 @@ import sorveteria.strategy.DescontoDiaDosNamorados;
 import sorveteria.strategy.DescontoFidelidade;
 import sorveteria.strategy.DescontoStrategy;
 
+import java.time.LocalDate; // NOVO IMPORT
+import java.time.Month;   // NOVO IMPORT
 import java.util.List;
 import java.util.Optional;
 
@@ -49,11 +51,12 @@ public class SistemaSorveteriaFacade {
         return produto;
     }
 
-    public Pedido registrarNovoPedido(String nomeCliente) {
-        Pedido pedido = new Pedido(); // Cria um novo Pedido sem ID (o ID será gerado no repositório)
+    public Pedido registrarNovoPedido(int idCliente, String nomeCliente) {
+        Pedido pedido = new Pedido();
+        pedido.setIdCliente(idCliente);
         pedido.adicionarObserver(new ClienteObserver(nomeCliente));
         filaPedidos.adicionarPedido(pedido);
-        System.out.println("Novo pedido para " + nomeCliente + " registrado para processamento na fila.");
+        System.out.println("Novo pedido para " + nomeCliente + " (Cliente ID: " + idCliente + ") registrado para processamento na fila.");
         return pedido;
     }
 
@@ -61,7 +64,7 @@ public class SistemaSorveteriaFacade {
         Pedido pedido = filaPedidos.processarProximoPedido();
         if (pedido != null) {
             gerenciadorComandos.executarComando(new AvancarEstadoPedidoCommand(pedido));
-            pedidoRepository.salvar(pedido); // Salva o estado atualizado no BD
+            pedidoRepository.salvar(pedido);
             System.out.println("Processando próximo pedido da fila: #" + pedido.getId());
         } else {
             System.out.println("Fila de pedidos vazia.");
@@ -71,15 +74,15 @@ public class SistemaSorveteriaFacade {
 
     public void avancarEstadoPedido(Pedido pedido) {
         gerenciadorComandos.executarComando(new AvancarEstadoPedidoCommand(pedido));
-        pedidoRepository.salvar(pedido); // Salva o estado atualizado no BD
+        pedidoRepository.salvar(pedido);
     }
 
     public void cancelarPedido(Pedido pedido) {
         gerenciadorComandos.executarComando(new CancelarPedidoCommand(pedido));
-        pedidoRepository.salvar(pedido); // Salva o estado atualizado no BD
+        pedidoRepository.salvar(pedido);
     }
 
-    public Optional<Pedido> buscarPedidoPorId(int id) { // ID é int
+    public Optional<Pedido> buscarPedidoPorId(int id) {
         return pedidoRepository.buscarPorId(id);
     }
 
@@ -88,21 +91,18 @@ public class SistemaSorveteriaFacade {
     }
 
     public void salvarPedido(Pedido pedido) {
-        pedidoRepository.salvar(pedido); // O ID será gerado aqui para novos pedidos
+        pedidoRepository.salvar(pedido);
     }
 
-    public void deletarPedido(int id) { // ID é int
+    public void deletarPedido(int id) {
         pedidoRepository.deletar(id);
     }
 
     public void cadastrarCliente(Cliente cliente) {
-        // Se o ID do cliente for 0, é um novo cliente. O ID será gerado no repositório.
-        // Se o ID não for 0, é uma atualização ou tentativa de inserir ID específico.
-        // A lógica de salvar no ClienteRepositoryImpl lida com ambos os casos.
         clienteRepository.salvar(cliente);
     }
 
-    public Optional<Cliente> buscarClientePorId(int id) { // ID é int
+    public Optional<Cliente> buscarClientePorId(int id) {
         return clienteRepository.buscarPorId(id);
     }
 
@@ -114,25 +114,63 @@ public class SistemaSorveteriaFacade {
         clienteRepository.atualizar(cliente);
     }
 
-    public void deletarCliente(int id) { // ID é int
+    public void deletarCliente(int id) {
         clienteRepository.deletar(id);
     }
 
-    public double aplicarDesconto(double valorOriginal, String tipoDesconto) {
+    // Método para aplicar desconto ao valor total de um pedido
+    public boolean aplicarDescontoAoTotalDoPedido(int idPedido, String tipoDesconto) {
+        Optional<Pedido> pedidoOptional = pedidoRepository.buscarPorId(idPedido);
+        if (pedidoOptional.isEmpty()) {
+            System.out.println("Pedido com ID " + idPedido + " não encontrado.");
+            return false;
+        }
+
+        Pedido pedido = pedidoOptional.get();
+        double valorOriginalDoPedido = pedido.getValorTotal();
+
         DescontoStrategy strategy;
         switch (tipoDesconto.toLowerCase()) {
-            case "fidelidade":
+            case "diadosnamorados":
+                // Verifica a elegibilidade do desconto do Dia dos Namorados
+                if (DescontoDiaDosNamorados.isPedidoElegivel(pedido)) { // isPedidoElegivel já verifica itens E data
+                    strategy = new DescontoDiaDosNamorados();
+                } else {
+                    // Mensagem de erro mais específica
+                    String msg = "Desconto Dia dos Namorados não aplicável: ";
+                    if (pedido.getItens().size() != 2) {
+                        msg += "o pedido precisa ter exatamente 2 itens";
+                    }
+                    // Verifica a condição de data separadamente para a mensagem de erro
+                    LocalDate hoje = LocalDate.now();
+                    LocalDate diaDosNamoradosData = LocalDate.of(hoje.getYear(), Month.JUNE, 12);
+                    if (!hoje.isEqual(diaDosNamoradosData)) {
+                        if (pedido.getItens().size() != 2) { // Se já adicionou a razão do item, adiciona " E "
+                            msg += " E ";
+                        }
+                        msg += "o desconto só é aplicável em 12/06 de cada ano";
+                    }
+                    System.out.println(msg + ".");
+                    return false;
+                }
+                break; // Adicionado break para o case diadosnamorados
+            case "fidelidade": // Movemos para um else if ou outro case
                 strategy = new DescontoFidelidade();
                 break;
-            case "diadosnamorados":
-                strategy = new DescontoDiaDosNamorados();
-                break;
             default:
-                System.out.println("Tipo de desconto inválido. Nenhum desconto aplicado.");
-                return valorOriginal;
+                System.out.println("Tipo de desconto inválido para aplicar ao pedido. Nenhum desconto aplicado.");
+                return false;
         }
-        return strategy.aplicarDesconto(valorOriginal);
+
+        double novoValorTotalPedido = strategy.aplicarDesconto(valorOriginalDoPedido);
+        pedido.setValorTotal(novoValorTotalPedido);
+
+        pedidoRepository.salvar(pedido);
+        System.out.println("Desconto '" + tipoDesconto + "' aplicado ao pedido #" + idPedido + ".");
+        System.out.println("Valor original: R$" + String.format("%.2f", valorOriginalDoPedido) + ". Novo valor total do pedido: R$" + String.format("%.2f", novoValorTotalPedido));
+        return true;
     }
+
 
     public void desfazerUltimoComando() {
         gerenciadorComandos.desfazerUltimoComando();
