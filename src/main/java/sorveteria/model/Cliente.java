@@ -1,22 +1,28 @@
 package sorveteria.model;
 
 public class Cliente {
-    private String id;
+    private int id;
     private String nome;
     private String email;
 
-    public Cliente(String id, String nome, String email) {
+    // NOVO CONSTRUTOR: Para criar um novo cliente cujo ID será gerado pelo BD
+    public Cliente() {
+        // O ID será definido pelo repositório após a inserção no banco de dados.
+        // Outros campos podem ser definidos via setters.
+    }
+
+    // Construtor para carregar clientes existentes do BD (com ID já existente)
+    public Cliente(int id, String nome, String email) {
         this.setId(id);
         this.setNome(nome);
         this.setEmail(email);
     }
 
-
-    public String getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -36,11 +42,12 @@ public class Cliente {
         this.email = email;
     }
 
+    @Override
     public String toString() {
         return "Cliente{" +
-                "id='" + id + '\'' +
+                "id=" + id +
                 ", nome='" + nome + '\'' +
-                ", email'" + email + '\'' +
+                ", email='" + email + '\'' +
                 '}';
     }
 }

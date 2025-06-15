@@ -16,7 +16,7 @@ public class SorveteriaController {
     private Scanner scanner;
 
     public SorveteriaController() {
-        this.facade = new SistemaSorveteriaFacade(); // A fachada agora lida com repositórios
+        this.facade = new SistemaSorveteriaFacade();
         this.scanner = new Scanner(System.in);
     }
 
@@ -110,15 +110,18 @@ public class SorveteriaController {
     }
 
     private void cadastrarNovoCliente() {
-        System.out.print("Digite o ID do cliente: ");
-        String id = scanner.nextLine();
+        // ID do cliente NÃO É MAIS SOLICITADO, será gerado pelo banco de dados.
+
         System.out.print("Digite o nome do cliente: ");
         String nome = scanner.nextLine();
         System.out.print("Digite o email do cliente: ");
         String email = scanner.nextLine();
 
-        facade.cadastrarCliente(new Cliente(id, nome, email));
-        System.out.println("Cliente " + nome + " cadastrado com sucesso!");
+        Cliente novoCliente = new Cliente(); // Usa o construtor sem argumentos
+        novoCliente.setNome(nome);
+        novoCliente.setEmail(email);
+
+        facade.cadastrarCliente(novoCliente); // Passa o objeto Cliente sem ID, que será gerado no repositório
     }
 
     private void listarTodosClientes() {
@@ -132,8 +135,15 @@ public class SorveteriaController {
     }
 
     private void buscarClientePorId() {
-        System.out.print("Digite o ID do cliente para buscar: ");
-        String id = scanner.nextLine();
+        int id;
+        try {
+            System.out.print("Digite o ID do cliente para buscar (número inteiro): ");
+            id = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID inválido. Por favor, digite um número inteiro.");
+            return;
+        }
+
         Optional<Cliente> cliente = facade.buscarClientePorId(id);
         cliente.ifPresentOrElse(
                 System.out::println,
@@ -142,8 +152,15 @@ public class SorveteriaController {
     }
 
     private void atualizarDadosCliente() {
-        System.out.print("Digite o ID do cliente para atualizar: ");
-        String id = scanner.nextLine();
+        int id;
+        try {
+            System.out.print("Digite o ID do cliente para atualizar (número inteiro): ");
+            id = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID inválido. Por favor, digite um número inteiro.");
+            return;
+        }
+
         Optional<Cliente> clienteExistente = facade.buscarClientePorId(id);
 
         if (clienteExistente.isPresent()) {
@@ -167,10 +184,15 @@ public class SorveteriaController {
     }
 
     private void deletarCliente() {
-        System.out.print("Digite o ID do cliente para deletar: ");
-        String id = scanner.nextLine();
+        int id;
+        try {
+            System.out.print("Digite o ID do cliente para deletar (número inteiro): ");
+            id = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID inválido. Por favor, digite um número inteiro.");
+            return;
+        }
         facade.deletarCliente(id);
-        System.out.println("Tentativa de deletar cliente com ID " + id + ".");
     }
 
 
@@ -227,10 +249,16 @@ public class SorveteriaController {
     }
 
     private void fazerNovoPedido() {
-        System.out.print("Digite o ID do pedido: ");
-        String idPedido = scanner.nextLine();
-        System.out.print("Digite o ID do cliente associado ao pedido: ");
-        String idCliente = scanner.nextLine();
+        // ID do pedido NÃO É MAIS SOLICITADO, será gerado pelo banco de dados.
+
+        int idCliente;
+        try {
+            System.out.print("Digite o ID do cliente associado ao pedido (número inteiro): ");
+            idCliente = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Cliente inválido. Por favor, digite um número inteiro.");
+            return;
+        }
 
         Optional<Cliente> cliente = facade.buscarClientePorId(idCliente);
         if (cliente.isEmpty()) {
@@ -257,12 +285,12 @@ public class SorveteriaController {
 
         Produto produto = facade.criarProduto(tipoProduto, saborEscolhido, adicionais);
         if (produto != null) {
-            Pedido novoPedido = facade.registrarNovoPedido(idPedido, cliente.get().getNome());
+            Pedido novoPedido = facade.registrarNovoPedido(cliente.get().getNome());
             if (novoPedido != null) {
                 novoPedido.adicionarItem(produto);
-                facade.salvarPedido(novoPedido); // Salvar o pedido no BD após adicionar o item
-                System.out.println("Produto " + produto.getNome() + " adicionado ao pedido #" + idPedido + " com preço R$" + String.format("%.2f", produto.getPreco()));
-                System.out.println("Pedido salvo no banco de dados.");
+                facade.salvarPedido(novoPedido);
+                System.out.println("Produto " + produto.getNome() + " adicionado ao pedido #" + novoPedido.getId() + " com preço R$" + String.format("%.2f", produto.getPreco()));
+                System.out.println("Pedido #" + novoPedido.getId() + " salvo no banco de dados com ID gerado.");
             }
         }
     }
@@ -295,33 +323,47 @@ public class SorveteriaController {
         System.out.println("Tentando processar o próximo pedido da fila...");
         Pedido pedidoProcessado = facade.processarProximoPedidoDaFila();
         if (pedidoProcessado != null) {
-            facade.salvarPedido(pedidoProcessado); // Salva o estado atualizado no BD
+            facade.salvarPedido(pedidoProcessado);
         }
     }
 
     private void avancarEstadoDoPedido() {
-        System.out.print("Digite o ID do pedido para avançar o estado: ");
-        String idPedido = scanner.nextLine();
+        int idPedido;
+        try {
+            System.out.print("Digite o ID do pedido para avançar o estado (número inteiro): ");
+            idPedido = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Pedido inválido. Por favor, digite um número inteiro.");
+            return;
+        }
+
         Optional<Pedido> pedidoOptional = facade.buscarPedidoPorId(idPedido);
         if (pedidoOptional.isPresent()) {
             Pedido pedidoParaAvancar = pedidoOptional.get();
             System.out.println("Avançando estado do pedido #" + idPedido + "...");
             facade.avancarEstadoPedido(pedidoParaAvancar);
-            facade.salvarPedido(pedidoParaAvancar); // Salva o estado atualizado no BD
+            facade.salvarPedido(pedidoParaAvancar);
         } else {
             System.out.println("Pedido com ID " + idPedido + " não encontrado.");
         }
     }
 
     private void cancelarPedido() {
-        System.out.print("Digite o ID do pedido para cancelar: ");
-        String idPedido = scanner.nextLine();
+        int idPedido;
+        try {
+            System.out.print("Digite o ID do pedido para cancelar (número inteiro): ");
+            idPedido = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Pedido inválido. Por favor, digite um número inteiro.");
+            return;
+        }
+
         Optional<Pedido> pedidoOptional = facade.buscarPedidoPorId(idPedido);
         if (pedidoOptional.isPresent()) {
             Pedido pedidoParaCancelar = pedidoOptional.get();
             System.out.println("Cancelando pedido #" + idPedido + "...");
             facade.cancelarPedido(pedidoParaCancelar);
-            facade.salvarPedido(pedidoParaCancelar); // Salva o estado atualizado no BD
+            facade.salvarPedido(pedidoParaCancelar);
         } else {
             System.out.println("Pedido com ID " + idPedido + " não encontrado.");
         }
@@ -348,8 +390,15 @@ public class SorveteriaController {
     }
 
     private void buscarPedidoPorId() {
-        System.out.print("Digite o ID do pedido para buscar: ");
-        String id = scanner.nextLine();
+        int id;
+        try {
+            System.out.print("Digite o ID do pedido para buscar (número inteiro): ");
+            id = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Pedido inválido. Por favor, digite um número inteiro.");
+            return;
+        }
+
         Optional<Pedido> pedido = facade.buscarPedidoPorId(id);
         pedido.ifPresentOrElse(
                 p -> {
@@ -368,10 +417,15 @@ public class SorveteriaController {
     }
 
     private void deletarPedido() {
-        System.out.print("Digite o ID do pedido para deletar: ");
-        String id = scanner.nextLine();
+        int id;
+        try {
+            System.out.print("Digite o ID do pedido para deletar (número inteiro): ");
+            id = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Pedido inválido. Por favor, digite um número inteiro.");
+            return;
+        }
         facade.deletarPedido(id);
-        System.out.println("Tentativa de deletar pedido com ID " + id + ".");
     }
 
     private void aplicarDescontoEmPedido() {

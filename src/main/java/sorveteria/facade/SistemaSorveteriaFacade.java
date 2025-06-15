@@ -11,10 +11,9 @@ import sorveteria.factory.Produto;
 import sorveteria.model.Cliente;
 import sorveteria.model.Pedido;
 import sorveteria.observer.ClienteObserver;
-import sorveteria.observer.PedidoObserver;
 import sorveteria.repository.ClienteRepository;
-import sorveteria.repository.ClienteRepositoryImpl;
 import sorveteria.repository.PedidoRepository;
+import sorveteria.repository.ClienteRepositoryImpl;
 import sorveteria.singleton.FilaPedidos;
 import sorveteria.strategy.DescontoDiaDosNamorados;
 import sorveteria.strategy.DescontoFidelidade;
@@ -50,17 +49,11 @@ public class SistemaSorveteriaFacade {
         return produto;
     }
 
-    public Pedido registrarNovoPedido(String idPedido, String nomeCliente) {
-        if(pedidoRepository.buscarPorId(idPedido).isPresent()){
-            System.out.println("Erro: Pedido com ID " + idPedido + " já existe.");
-            return null;
-        }
-
-        Pedido pedido = new Pedido(idPedido);
+    public Pedido registrarNovoPedido(String nomeCliente) {
+        Pedido pedido = new Pedido(); // Cria um novo Pedido sem ID (o ID será gerado no repositório)
         pedido.adicionarObserver(new ClienteObserver(nomeCliente));
         filaPedidos.adicionarPedido(pedido);
-        pedidoRepository.salvar(pedido);
-        System.out.println("Pedido #" + idPedido + " registrado com sucesso para " + nomeCliente + ".");
+        System.out.println("Novo pedido para " + nomeCliente + " registrado para processamento na fila.");
         return pedido;
     }
 
@@ -68,12 +61,61 @@ public class SistemaSorveteriaFacade {
         Pedido pedido = filaPedidos.processarProximoPedido();
         if (pedido != null) {
             gerenciadorComandos.executarComando(new AvancarEstadoPedidoCommand(pedido));
-            pedidoRepository.salvar(pedido);
+            pedidoRepository.salvar(pedido); // Salva o estado atualizado no BD
             System.out.println("Processando próximo pedido da fila: #" + pedido.getId());
         } else {
             System.out.println("Fila de pedidos vazia.");
         }
         return pedido;
+    }
+
+    public void avancarEstadoPedido(Pedido pedido) {
+        gerenciadorComandos.executarComando(new AvancarEstadoPedidoCommand(pedido));
+        pedidoRepository.salvar(pedido); // Salva o estado atualizado no BD
+    }
+
+    public void cancelarPedido(Pedido pedido) {
+        gerenciadorComandos.executarComando(new CancelarPedidoCommand(pedido));
+        pedidoRepository.salvar(pedido); // Salva o estado atualizado no BD
+    }
+
+    public Optional<Pedido> buscarPedidoPorId(int id) { // ID é int
+        return pedidoRepository.buscarPorId(id);
+    }
+
+    public List<Pedido> listarPedidos() {
+        return pedidoRepository.buscarTodos();
+    }
+
+    public void salvarPedido(Pedido pedido) {
+        pedidoRepository.salvar(pedido); // O ID será gerado aqui para novos pedidos
+    }
+
+    public void deletarPedido(int id) { // ID é int
+        pedidoRepository.deletar(id);
+    }
+
+    public void cadastrarCliente(Cliente cliente) {
+        // Se o ID do cliente for 0, é um novo cliente. O ID será gerado no repositório.
+        // Se o ID não for 0, é uma atualização ou tentativa de inserir ID específico.
+        // A lógica de salvar no ClienteRepositoryImpl lida com ambos os casos.
+        clienteRepository.salvar(cliente);
+    }
+
+    public Optional<Cliente> buscarClientePorId(int id) { // ID é int
+        return clienteRepository.buscarPorId(id);
+    }
+
+    public List<Cliente> listarClientes() {
+        return clienteRepository.buscarTodos();
+    }
+
+    public void atualizarCliente(Cliente cliente) {
+        clienteRepository.atualizar(cliente);
+    }
+
+    public void deletarCliente(int id) { // ID é int
+        clienteRepository.deletar(id);
     }
 
     public double aplicarDesconto(double valorOriginal, String tipoDesconto) {
@@ -92,58 +134,7 @@ public class SistemaSorveteriaFacade {
         return strategy.aplicarDesconto(valorOriginal);
     }
 
-    public void avancarEstadoPedido(Pedido pedido) {
-        gerenciadorComandos.executarComando(new AvancarEstadoPedidoCommand(pedido));
-        pedidoRepository.salvar(pedido);
-    }
-
-    public void cancelarPedido(Pedido pedido) {
-        gerenciadorComandos.executarComando(new CancelarPedidoCommand(pedido));
-        pedidoRepository.salvar(pedido);
-    }
-
-    public Optional<Pedido> buscarPedidoPorId(String id) {
-        return pedidoRepository.buscarPorId(id);
-    }
-
-    public List<Pedido> listarPedidos() {
-        return pedidoRepository.buscarTodos();
-    }
-
-    public void salvarPedido(Pedido pedido) {
-        pedidoRepository.salvar(pedido);
-    }
-
-    public void deletarPedido(String id) {
-        pedidoRepository.deletar(id);
-    }
-
-    public void cadastrarCliente(Cliente cliente) {
-        if (clienteRepository.buscarPorId(cliente.getId()).isPresent()) {
-            System.out.println("Erro: Cliente com ID " + cliente.getId() + " já existe.");
-        } else {
-            clienteRepository.salvar(cliente);
-            System.out.println("Cliente " + cliente.getNome() + " salvo no banco de dados.");
-        }
-    }
-
-    public Optional<Cliente> buscarClientePorId(String id) {
-        return clienteRepository.buscarPorId(id);
-    }
-
-    public List<Cliente> listarClientes() {
-        return clienteRepository.buscarTodos();
-    }
-
-    public void atualizarCliente(Cliente cliente) {
-        clienteRepository.atualizar(cliente);
-    }
-
-    public void deletarCliente(String id) {
-        clienteRepository.deletar(id);
-    }
-
-        public void desfazerUltimoComando() {
+    public void desfazerUltimoComando() {
         gerenciadorComandos.desfazerUltimoComando();
     }
 

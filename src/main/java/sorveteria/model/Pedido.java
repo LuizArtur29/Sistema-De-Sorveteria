@@ -9,21 +9,21 @@ import java.util.List;
 
 public class Pedido{
     private EstadoPedido estado;
-    private String id;
+    private int id; // ID agora é int
     private List<PedidoObserver> observers;
     private List<Produto> itens;
     private double valorTotal;
 
-    public Pedido(String id) {
-        this.id = id;
+    // NOVO CONSTRUTOR: Para criar um novo pedido cujo ID será gerado pelo BD
+    public Pedido() {
         this.estado = new RecebidoState(); // Estado inicial
         this.observers = new ArrayList<>();
         this.itens = new ArrayList<>();
-        this.setValorTotal(0.0);
+        this.valorTotal = 0.0;
     }
 
-    // Construtor para ser usado pelo Repository ao carregar dados do DB
-    public Pedido(String id, double valorTotal, EstadoPedido estadoInicial) {
+    // Construtor para carregar pedidos existentes do DB (com ID já existente)
+    public Pedido(int id, double valorTotal, EstadoPedido estadoInicial) {
         this.id = id;
         this.observers = new ArrayList<>();
         this.itens = new ArrayList<>();
@@ -63,7 +63,7 @@ public class Pedido{
         }
     }
 
-    // Getters e Setters
+    // Getters e Setters (setId para permitir que o repositório defina o ID gerado)
     public EstadoPedido getEstado() {
         return estado;
     }
@@ -72,10 +72,13 @@ public class Pedido{
         this.estado = estado;
     }
 
-    public String getId() {
+    public int getId() { // Getter retorna int
         return id;
     }
 
+    public void setId(int id) { // Setter para definir o ID gerado pelo banco
+        this.id = id;
+    }
 
     public void adicionarObserver(PedidoObserver observer) {
         this.observers.add(observer);

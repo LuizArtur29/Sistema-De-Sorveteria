@@ -14,28 +14,61 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public void salvar(Cliente cliente) {
-        String sql = "INSERT INTO clientes (id, nome, email) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, email = EXCLUDED.email";
         Connection conn = null;
         PreparedStatement stmt = null;
+        ResultSet rs = null; // Para obter chaves geradas
         try {
             conn = DatabaseConnection.getConnection();
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, cliente.getId());
-            stmt.setString(2, cliente.getNome());
-            stmt.setString(3, cliente.getEmail());
-            stmt.executeUpdate();
-            System.out.println("Cliente " + cliente.getNome() + " salvo/atualizado com sucesso.");
+            conn.setAutoCommit(false); // Inicia transação
+
+            // Se o ID do cliente for 0, consideramos que é um novo cliente e o ID será gerado
+            if (cliente.getId() == 0) {
+                String sqlInsert = "INSERT INTO clientes (nome, email) VALUES (?, ?)"; // Não inclui 'id'
+                stmt = conn.prepareStatement(sqlInsert, PreparedStatement.RETURN_GENERATED_KEYS); // Retorna chaves geradas
+                stmt.setString(1, cliente.getNome());
+                stmt.setString(2, cliente.getEmail());
+                stmt.executeUpdate();
+
+                rs = stmt.getGeneratedKeys(); // Obtém o ResultSet com as chaves geradas
+                if (rs.next()) {
+                    int generatedId = rs.getInt(1); // Recupera o ID gerado
+                    cliente.setId(generatedId); // Atribui o ID gerado ao objeto Cliente
+                    System.out.println("Novo cliente inserido com ID gerado: #" + generatedId);
+                }
+            } else { // Se o cliente já tem ID, é uma atualização
+                String sqlUpdate = "UPDATE clientes SET nome = ?, email = ? WHERE id = ?";
+                stmt = conn.prepareStatement(sqlUpdate);
+                stmt.setString(1, cliente.getNome());
+                stmt.setString(2, cliente.getEmail());
+                stmt.setInt(3, cliente.getId());
+                int rowsAffected = stmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    System.out.println("Cliente com ID " + cliente.getId() + " atualizado com sucesso.");
+                } else {
+                    System.out.println("Cliente com ID " + cliente.getId() + " não encontrado para atualização.");
+                }
+            }
+            conn.commit(); // Confirma a transação
         } catch (SQLException e) {
             System.err.println("Erro ao salvar cliente: " + e.getMessage());
             e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Desfaz a transação em caso de erro
+                    System.err.println("Transação desfeita.");
+                } catch (SQLException rbEx) {
+                    System.err.println("Erro ao desfazer transação: " + rbEx.getMessage());
+                }
+            }
         } finally {
+            try { if (rs != null) rs.close(); } catch (SQLException e) { /* ignore */ }
             try { if (stmt != null) stmt.close(); } catch (SQLException e) { /* ignore */ }
             DatabaseConnection.closeConnection(conn);
         }
     }
 
     @Override
-    public Optional<Cliente> buscarPorId(String id) {
+    public Optional<Cliente> buscarPorId(int id) {
         String sql = "SELECT id, nome, email FROM clientes WHERE id = ?";
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -43,11 +76,11 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         try {
             conn = DatabaseConnection.getConnection();
             stmt = conn.prepareStatement(sql);
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             rs = stmt.executeQuery();
             if (rs.next()) {
                 return Optional.of(new Cliente(
-                        rs.getString("id"),
+                        rs.getInt("id"),
                         rs.getString("nome"),
                         rs.getString("email")
                 ));
@@ -76,7 +109,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             rs = stmt.executeQuery();
             while (rs.next()) {
                 clientes.add(new Cliente(
-                        rs.getString("id"),
+                        rs.getInt("id"),
                         rs.getString("nome"),
                         rs.getString("email")
                 ));
@@ -102,7 +135,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, cliente.getNome());
             stmt.setString(2, cliente.getEmail());
-            stmt.setString(3, cliente.getId());
+            stmt.setInt(3, cliente.getId());
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
                 System.out.println("Cliente com ID " + cliente.getId() + " atualizado com sucesso.");
@@ -119,14 +152,14 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     @Override
-    public void deletar(String id) {
+    public void deletar(int id) {
         String sql = "DELETE FROM clientes WHERE id = ?";
         Connection conn = null;
         PreparedStatement stmt = null;
         try {
             conn = DatabaseConnection.getConnection();
             stmt = conn.prepareStatement(sql);
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
                 System.out.println("Cliente com ID " + id + " deletado com sucesso.");
