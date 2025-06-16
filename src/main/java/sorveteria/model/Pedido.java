@@ -65,7 +65,6 @@ public class Pedido{
         }
     }
 
-    // Getters e Setters (setId para permitir que o repositório defina o ID gerado)
     public EstadoPedido getEstado() {
         return estado;
     }
@@ -74,11 +73,11 @@ public class Pedido{
         this.estado = estado;
     }
 
-    public int getId() { // Getter retorna int
+    public int getId() {
         return id;
     }
 
-    public void setId(int id) { // Setter para definir o ID gerado pelo banco
+    public void setId(int id) {
         this.id = id;
     }
 

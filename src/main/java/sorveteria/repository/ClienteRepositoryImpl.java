@@ -16,10 +16,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     public void salvar(Cliente cliente) {
         Connection conn = null;
         PreparedStatement stmt = null;
-        ResultSet rs = null; // Para obter chaves geradas
+        ResultSet rs = null;
         try {
             conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false); // Inicia transação
+            conn.setAutoCommit(false);
 
             // Se o ID do cliente for 0, consideramos que é um novo cliente e o ID será gerado
             if (cliente.getId() == 0) {
@@ -29,7 +29,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                 stmt.setString(2, cliente.getEmail());
                 stmt.executeUpdate();
 
-                rs = stmt.getGeneratedKeys(); // Obtém o ResultSet com as chaves geradas
+                rs = stmt.getGeneratedKeys();
                 if (rs.next()) {
                     int generatedId = rs.getInt(1); // Recupera o ID gerado
                     cliente.setId(generatedId); // Atribui o ID gerado ao objeto Cliente

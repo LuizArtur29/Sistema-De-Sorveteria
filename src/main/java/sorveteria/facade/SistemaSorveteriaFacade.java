@@ -19,8 +19,8 @@ import sorveteria.strategy.DescontoDiaDosNamorados;
 import sorveteria.strategy.DescontoFidelidade;
 import sorveteria.strategy.DescontoStrategy;
 
-import java.time.LocalDate; // NOVO IMPORT
-import java.time.Month;   // NOVO IMPORT
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 
@@ -118,7 +118,6 @@ public class SistemaSorveteriaFacade {
         clienteRepository.deletar(id);
     }
 
-    // Método para aplicar desconto ao valor total de um pedido
     public boolean aplicarDescontoAoTotalDoPedido(int idPedido, String tipoDesconto) {
         Optional<Pedido> pedidoOptional = pedidoRepository.buscarPorId(idPedido);
         if (pedidoOptional.isEmpty()) {
@@ -153,8 +152,8 @@ public class SistemaSorveteriaFacade {
                     System.out.println(msg + ".");
                     return false;
                 }
-                break; // Adicionado break para o case diadosnamorados
-            case "fidelidade": // Movemos para um else if ou outro case
+                break;
+            case "fidelidade":
                 strategy = new DescontoFidelidade();
                 break;
             default:

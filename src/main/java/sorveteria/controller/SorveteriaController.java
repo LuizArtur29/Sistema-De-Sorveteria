@@ -6,11 +6,9 @@ import sorveteria.facade.SistemaSorveteriaFacade;
 import sorveteria.factory.Produto;
 import sorveteria.model.Cliente;
 import sorveteria.model.Pedido;
-
 import java.util.List;
 import java.util.Scanner;
 import java.util.Optional;
-import java.util.InputMismatchException;
 
 public class SorveteriaController {
     private SistemaSorveteriaFacade facade;
@@ -27,7 +25,7 @@ public class SorveteriaController {
         do {
             exibirMenuPrincipal();
             opcao = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (opcao) {
                 case 1:
@@ -37,7 +35,7 @@ public class SorveteriaController {
                     menuPedidos();
                     break;
                 case 3:
-                    aplicarDescontoAoPedido(); // RENOMEADO E MODIFICADO
+                    aplicarDescontoAoPedido();
                     break;
                 case 4:
                     desfazerUltimoComando();
@@ -69,9 +67,9 @@ public class SorveteriaController {
     private void menuClientes() {
         int opcao;
         do {
-            exibirMenuClientes(); // <--- MÉTODO QUE CAUSA O ERRO
+            exibirMenuClientes();
             opcao = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (opcao) {
                 case 1:
@@ -201,7 +199,7 @@ public class SorveteriaController {
         do {
             exibirMenuPedidos();
             opcao = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (opcao) {
                 case 1:

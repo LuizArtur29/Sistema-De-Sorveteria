@@ -40,23 +40,17 @@ public class SorveteriaFacade {
         return produtoFinal;
     }
 
-    // Método corrigido: não recebe mais 'idPedido'
     public Pedido fazerNovoPedido(String tipoProduto, SaborBase sabor, List<TipoAdicional> adicionais) {
         Produto produtoPedido = criarEPErsonalizarProduto(tipoProduto, sabor, adicionais);
         if (produtoPedido == null) {
             return null;
         }
 
-        // NOVO Pedido criado sem ID. O ID será gerado pelo banco ao salvar.
         Pedido novoPedido = new Pedido();
-        novoPedido.adicionarItem(produtoPedido); // Adiciona o item ao pedido
+        novoPedido.adicionarItem(produtoPedido);
 
-        // O ID do pedido só estará disponível após o PedidoRepository.salvar() ser chamado
-        // e ele recuperar o ID gerado pelo banco de dados.
-        // A mensagem abaixo imprimirá um ID 0 ou o valor inicial, se o objeto não for salvo antes.
-        // A FilaPedidos geralmente trabalha com o objeto Pedido antes da persistência final.
         System.out.println("Pedido criado com " + produtoPedido.getNome() + " (R$" + produtoPedido.getPreco() + ")");
-        filaPedidos.adicionarPedido(novoPedido); // Adiciona o pedido à fila
+        filaPedidos.adicionarPedido(novoPedido);
         return novoPedido;
     }
 

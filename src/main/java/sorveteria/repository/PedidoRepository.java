@@ -24,7 +24,7 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            if (pedido.getId() == 0) { // Nova inserção
+            if (pedido.getId() == 0) {
                 String sqlInsert = "INSERT INTO pedidos (estado_atual, valor_total, data_criacao, id_cliente) VALUES (?, ?, ?, ?)"; // Adicionado id_cliente
                 stmt = conn.prepareStatement(sqlInsert, PreparedStatement.RETURN_GENERATED_KEYS);
                 stmt.setString(1, pedido.getEstado().getDescricao());
@@ -39,7 +39,7 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                     pedido.setId(generatedId);
                     System.out.println("Novo pedido inserido com ID gerado: #" + generatedId);
                 }
-            } else { // Atualização
+            } else {
                 String sqlUpdate = "UPDATE pedidos SET estado_atual = ?, valor_total = ?, id_cliente = ? WHERE id = ?"; // Adicionado id_cliente para atualização
                 stmt = conn.prepareStatement(sqlUpdate);
                 stmt.setString(1, pedido.getEstado().getDescricao());
@@ -50,14 +50,11 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                 System.out.println("Pedido #" + pedido.getId() + " atualizado.");
             }
 
-            // ... (Restante do método salvar, para itens, que já usa pedido.getId()) ...
-            // Limpar itens antigos para este pedido
             String sqlDeleteItens = "DELETE FROM pedido_itens WHERE pedido_id = ?";
             stmt = conn.prepareStatement(sqlDeleteItens);
             stmt.setInt(1, pedido.getId());
             stmt.executeUpdate();
 
-            // Salvar os novos itens do pedido
             String sqlInsertItem = "INSERT INTO pedido_itens (pedido_id, nome_produto, preco_unitario) VALUES (?, ?, ?)";
             for (Produto item : pedido.getItens()) {
                 stmt = conn.prepareStatement(sqlInsertItem);
@@ -99,7 +96,6 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
         try {
             conn = DatabaseConnection.getConnection();
 
-            // Adicionado id_cliente à seleção
             String sqlPedido = "SELECT id, estado_atual, valor_total, id_cliente FROM pedidos WHERE id = ?";
             stmt = conn.prepareStatement(sqlPedido);
             stmt.setInt(1, id);
@@ -121,7 +117,6 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                 }
                 pedido = new Pedido(pedidoId, idCliente, valorTotal, estadoCarregado); // Passar id_cliente para o construtor
 
-                // ... (restante do método buscarItens, que não precisa de id_cliente) ...
                 String sqlItens = "SELECT nome_produto, preco_unitario FROM pedido_itens WHERE pedido_id = ?";
                 stmt = conn.prepareStatement(sqlItens);
                 stmt.setInt(1, pedidoId);
@@ -154,7 +149,6 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
 
         try {
             conn = DatabaseConnection.getConnection();
-            // Adicionado id_cliente à seleção
             String sqlPedidos = "SELECT id, estado_atual, valor_total, id_cliente FROM pedidos";
             stmt = conn.prepareStatement(sqlPedidos);
             rs = stmt.executeQuery();
@@ -175,7 +169,6 @@ public class PedidoRepository implements Repository<Pedido, Integer> {
                 }
                 Pedido pedido = new Pedido(pedidoId, idCliente, valorTotal, estadoCarregado); // Passar id_cliente para o construtor
 
-                // ... (restante do método, para itens) ...
                 String sqlItens = "SELECT nome_produto, preco_unitario FROM pedido_itens WHERE pedido_id = ?";
                 PreparedStatement stmtItens = conn.prepareStatement(sqlItens);
                 stmtItens.setInt(1, pedidoId);

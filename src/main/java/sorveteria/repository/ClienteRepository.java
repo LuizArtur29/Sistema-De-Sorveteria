@@ -7,8 +7,8 @@ import java.util.Optional;
 
 public interface ClienteRepository {
     void salvar(Cliente cliente);
-    Optional<Cliente> buscarPorId(int id); // Alterado de String para int
+    Optional<Cliente> buscarPorId(int id);
     List<Cliente> buscarTodos();
     void atualizar(Cliente cliente);
-    void deletar(int id); // Alterado de String para int
+    void deletar(int id);
 }
