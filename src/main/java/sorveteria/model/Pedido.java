@@ -1,6 +1,8 @@
 package sorveteria.model;
 
 import sorveteria.factory.Produto;
+import sorveteria.observer.Observadores;
+import sorveteria.observer.ObserverManager;
 import sorveteria.observer.PedidoObserver;
 import sorveteria.state.*;
 
@@ -11,14 +13,14 @@ public class Pedido{
     private EstadoPedido estado;
     private int id;
     private int idCliente;
-    private List<PedidoObserver> observers;
+    private final Observadores observerManager;
     private List<Produto> itens;
     private double valorTotal;
 
     // NOVO CONSTRUTOR: Para criar um novo pedido cujo ID será gerado pelo BD
     public Pedido() {
         this.estado = new RecebidoState(); // Estado inicial
-        this.observers = new ArrayList<>();
+        this.observerManager = new ObserverManager(this);
         this.itens = new ArrayList<>();
         this.valorTotal = 0.0;
     }
@@ -27,7 +29,7 @@ public class Pedido{
     public Pedido(int id, int idCliente, double valorTotal, EstadoPedido estadoInicial) {
         this.id = id;
         this.setIdCliente(idCliente);
-        this.observers = new ArrayList<>();
+        this.observerManager = new ObserverManager(this);
         this.itens = new ArrayList<>();
         this.valorTotal = valorTotal;
         this.estado = estadoInicial;
@@ -36,12 +38,12 @@ public class Pedido{
     public void avancarEstado() {
         estado.avancar(this);
         System.out.println("Pedido #" + id + " - Estado: " + estado.getDescricao());
-        notificarObservers();
+        observerManager.notificarObservers();
     }
 
     public void cancelar() {
         estado.cancelar(this);
-        notificarObservers();
+        observerManager.notificarObservers();
     }
 
     public void adicionarItem(Produto produto) {
@@ -82,17 +84,11 @@ public class Pedido{
     }
 
     public void adicionarObserver(PedidoObserver observer) {
-        this.observers.add(observer);
+        this.observerManager.adicionarObserver(observer);
     }
 
     public void removerObserver(PedidoObserver observer) {
-        this.observers.remove(observer);
-    }
-
-    public void notificarObservers() {
-        for (PedidoObserver observer : observers) {
-            observer.atualizar(this);
-        }
+        this.observerManager.removerObserver(observer);
     }
 
     public double getValorTotal() {

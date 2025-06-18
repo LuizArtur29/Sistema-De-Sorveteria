@@ -11,10 +11,12 @@ import sorveteria.factory.Produto;
 import sorveteria.model.Cliente;
 import sorveteria.model.Pedido;
 import sorveteria.observer.ClienteObserver;
+import sorveteria.pagamento.ProcessadorPagamento;
 import sorveteria.repository.ClienteRepository;
 import sorveteria.repository.PedidoRepository;
 import sorveteria.repository.ClienteRepositoryImpl;
 import sorveteria.singleton.FilaPedidos;
+import sorveteria.state.ProntoParaEntregaState;
 import sorveteria.strategy.DescontoDiaDosNamorados;
 import sorveteria.strategy.DescontoFidelidade;
 import sorveteria.strategy.DescontoStrategy;
@@ -30,6 +32,7 @@ public class SistemaSorveteriaFacade {
     private GerenciadorDeComandos gerenciadorComandos;
     private ClienteRepository clienteRepository;
     private PedidoRepository pedidoRepository;
+    private ProcessadorPagamento processadorPagamento;
 
     public SistemaSorveteriaFacade() {
         this.produtoFactory = new Factory();
@@ -37,6 +40,7 @@ public class SistemaSorveteriaFacade {
         this.gerenciadorComandos = new GerenciadorDeComandos();
         this.clienteRepository = new ClienteRepositoryImpl();
         this.pedidoRepository = new PedidoRepository();
+        this.processadorPagamento = new ProcessadorPagamento();
     }
 
     public Produto criarProduto(String tipo, SaborBase sabor, List<TipoAdicional> adicionais) {
@@ -170,6 +174,40 @@ public class SistemaSorveteriaFacade {
         return true;
     }
 
+    public boolean pagarPedido(int idPedido) {
+        Optional<Pedido> pedidoOptional = pedidoRepository.buscarPorId(idPedido);
+        if (pedidoOptional.isEmpty()) {
+            System.out.println("Pedido com ID " + idPedido + " não encontrado.");
+            return false;
+        }
+
+        Pedido pedido = pedidoOptional.get();
+
+        if (!(pedido.getEstado() instanceof ProntoParaEntregaState)) {
+            System.out.println("Erro: Pedido #" + idPedido + " não está pronto para entrega. Estado atual: " + pedido.getEstado().getDescricao());
+            return false;
+        }
+
+        double valorAPagar = pedido.getValorTotal();
+        System.out.println("Iniciando pagamento para o Pedido #" + idPedido + " no valor de R$" + String.format("%.2f", valorAPagar) + "...");
+
+        boolean pagamentoAprovado = processadorPagamento.processarPagamento(valorAPagar);
+
+        if (pagamentoAprovado) {
+            System.out.println("Pagamento do Pedido #" + idPedido + " aprovado com sucesso!");
+
+            System.out.println("Avançando estado do Pedido #" + idPedido + " para Entregue...");
+            pedido.avancarEstado();
+
+            pedidoRepository.salvar(pedido);
+            System.out.println("Pedido #" + idPedido + " agora está no estado: " + pedido.getEstado().getDescricao());
+
+            return true;
+        } else {
+            System.out.println("Falha no pagamento do Pedido #" + idPedido + ".");
+            return false;
+        }
+    }
 
     public void desfazerUltimoComando() {
         gerenciadorComandos.desfazerUltimoComando();

@@ -223,6 +223,9 @@ public class SorveteriaController {
                 case 7:
                     deletarPedido();
                     break;
+                case 8:
+                    pagarPedido();
+                    break;
                 case 0:
                     System.out.println("Retornando ao menu principal...");
                     break;
@@ -242,6 +245,7 @@ public class SorveteriaController {
         System.out.println("5. Listar todos os pedidos");
         System.out.println("6. Buscar pedido por ID");
         System.out.println("7. Deletar pedido");
+        System.out.println("8. Pagar Pedido");
         System.out.println("0. Voltar ao menu principal");
         System.out.print("Sua opção: ");
     }
@@ -460,6 +464,18 @@ public class SorveteriaController {
         }
     }
 
+    private void pagarPedido() {
+        int idPedido;
+        try {
+            System.out.print("Digite o ID do pedido a ser pago (número inteiro): ");
+            idPedido = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de Pedido inválido. Por favor, digite um número inteiro.");
+            return;
+        }
+
+        facade.pagarPedido(idPedido);
+    }
 
     private void desfazerUltimoComando() {
         System.out.println("Desfazendo último comando...");
